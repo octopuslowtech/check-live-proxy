@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxy Checker - High Performance</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #fff;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #00f5d4, #00bbf9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { text-align: center; color: #888; margin-bottom: 30px; }
+    
+    /* Help Section */
+    .help-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .help-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .help-toggle h3 {
+      color: #00f5d4;
+      font-size: 16px;
+    }
+    .help-toggle-icon {
+      color: #00f5d4;
+      font-size: 20px;
+      transition: transform 0.3s;
+    }
+    .help-toggle-icon.open { transform: rotate(180deg); }
+    .help-content {
+      display: none;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .help-content.show { display: block; }
+    .help-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .help-card {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 15px;
+    }
+    .help-card h4 {
+      color: #00bbf9;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .help-card ul {
+      list-style: none;
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.8;
+    }
+    .help-card ul li::before {
+      content: "•";
+      color: #00f5d4;
+      margin-right: 8px;
+    }
+    .help-card code {
+      background: rgba(0,245,212,0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #00f5d4;
+      font-size: 12px;
+    }
+    .help-note {
+      background: rgba(255,170,0,0.1);
+      border: 1px solid rgba(255,170,0,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 15px;
+      font-size: 13px;
+      color: #ffaa00;
+    }
+    .help-note strong { color: #ffcc00; }
+
+    .input-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .input-section label { display: block; margin-bottom: 10px; color: #aaa; }
+    textarea {
+      width: 100%;
+      height: 150px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 15px;
+      color: #fff;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: #00f5d4; }
+    
+    /* Config Section */
+    .config-section {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #00f5d4;
+      cursor: pointer;
+    }
+    .checkbox-label {
+      color: #fff;
+      font-size: 14px;
+    }
+    .config-inputs {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .config-inputs.show { display: grid; }
+    .config-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .config-group label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 0;
+    }
+    .config-group input {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .config-group input:focus {
+      outline: none;
+      border-color: #00f5d4;
+    }
+    .config-group .hint {
+      font-size: 11px;
+      color: #666;
+      margin-top: 3px;
+    }
+    .domain-input {
+      grid-column: 1 / -1;
+    }
+    .domain-input input {
+      width: 100%;
+    }
+
+    .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+    .btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, #00f5d4, #00bbf9);
+      color: #000;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0,245,212,0.4);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+    
+    .progress-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .progress-bar-container {
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      height: 20px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00f5d4, #00bbf9);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      color: #aaa;
+      font-size: 14px;
+    }
+    .stats { display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap; }
+    .stat {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .stat-live { background: rgba(0,255,136,0.2); color: #00ff88; }
+    .stat-die { background: rgba(255,68,68,0.2); color: #ff4444; }
+
+    .checking-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .checking-title {
+      font-size: 16px;
+      color: #00f5d4;
+      margin-bottom: 15px;
+    }
+    .checking-list {
+      max-height: 250px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+    }
+    .checking-item {
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .checking-item.live { border-left: 3px solid #00ff88; }
+    .checking-item.die { border-left: 3px solid #ff4444; }
+    .checking-item.checking { border-left: 3px solid #ffaa00; }
+    .check-proxy { flex: 1; min-width: 200px; }
+    .check-ip { color: #00bbf9; font-size: 11px; }
+    .check-results { color: #888; text-align: right; }
+    .check-results .success { color: #00ff88; }
+    .check-results .fail { color: #ff4444; }
+
+    .results-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .results-section { grid-template-columns: 1fr; }
+    }
+    .result-box {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .result-title {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .result-title.live { color: #00ff88; }
+    .result-title.die { color: #ff4444; }
+    .count-badge {
+      background: rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .result-list {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 15px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .result-list::-webkit-scrollbar { width: 8px; }
+    .result-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+    .result-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-ip { color: #00bbf9; font-size: 11px; }
+    .btn-copy { padding: 8px 16px; font-size: 14px; }
+    .btn-copy.copied { background: #00ff88; color: #000; }
+    .empty-state { color: #666; text-align: center; padding: 40px; }
+    .info-box {
+      background: rgba(0,187,249,0.1);
+      border: 1px solid rgba(0,187,249,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: #00bbf9;
+    }
+    .current-config {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .config-tag {
+      background: rgba(0,0,0,0.2);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Proxy Checker</h1>
+    <p class="subtitle">Kiểm tra kết nối proxy với hiệu năng cao</p>
+
+    <!-- Help Section -->
+    <div class="help-section">
+      <div class="help-toggle" onclick="toggleHelp()">
+        <h3>📖 Hướng dẫn sử dụng</h3>
+        <span class="help-toggle-icon" id="helpIcon">▼</span>
+      </div>
+      <div class="help-content" id="helpContent">
+        <div class="help-grid">
+          <div class="help-card">
+            <h4>📝 Định dạng Proxy</h4>
+            <ul>
+              <li>Không có auth: <code>ip:port</code></li>
+              <li>Có auth: <code>ip:port:username:password</code></li>
+              <li>Mỗi proxy trên một dòng</li>
+              <li>Hỗ trợ HTTP/HTTPS proxy</li>
+            </ul>
+          </div>
+          <div class="help-card">
+            <h4>⚙️ Chế độ kiểm tra</h4>
+            <ul>
+              <li><strong>Mặc định:</strong> Kiểm tra IP qua ipconfig.io/json</li>
+              <li><strong>Custom Domain:</strong> Tick checkbox để nhập domain riêng (VD: tiktok.com)</li>
+              <li>Khi tick, có thể cấu hình số round, delay, min success</li>
+            </ul>
+          </div>
+          <div class="help-card">
+            <h4>🎯 Cấu hình nâng cao</h4>
+            <ul>
+              <li><strong>Số round:</strong> Số lần kiểm tra mỗi proxy (1-20)</li>
+              <li><strong>Delay:</strong> Thời gian chờ giữa các round (giây)</li>
+              <li><strong>Min Success:</strong> Số lần thành công tối thiểu để coi là LIVE</li>
+              <li>Ví dụ: 5 round, min 3 → cần 4+ lần thành công = LIVE</li>
+            </ul>
+          </div>
+          <div class="help-card">
+            <h4>📊 Kết quả</h4>
+            <ul>
+              <li><strong>✓ Live:</strong> Proxy kết nối thành công</li>
+              <li><strong>✗ Die:</strong> Proxy không thể kết nối</li>
+              <li>Hiển thị IP thực của proxy (nếu check IP)</li>
+              <li>Click "Copy All" để sao chép danh sách</li>
+            </ul>
+          </div>
+        </div>
+        <div class="help-note">
+          <strong>💡 Lưu ý:</strong> 
+          Tool kiểm tra đồng thời 50 proxy để tối ưu hiệu năng. 
+          Timeout mỗi request là 10 giây. 
+          Nếu kiểm tra domain cụ thể (như TikTok), một số quốc gia có thể bị chặn nên proxy sẽ hiển thị là Die.
+        </div>
+      </div>
+    </div>
+
+    <div class="input-section">
+      <label>Nhập danh sách proxy (mỗi proxy một dòng)</label>
+      <textarea id="proxyInput" placeholder="Ví dụ:
+103.152.112.162:8080
+192.168.1.1:3128:myuser:mypass123
+45.77.123.45:8888"></textarea>
+      
+      <div class="config-section">
+        <div class="config-row">
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="useCustomDomain" onchange="toggleCustomConfig()">
+            <span class="checkbox-label">🎯 Kiểm tra domain cụ thể (thay vì check IP)</span>
+          </label>
+        </div>
+        
+        <div class="config-inputs" id="configInputs">
+          <div class="config-group domain-input">
+            <label>Domain kiểm tra</label>
+            <input type="text" id="customDomain" placeholder="https://www.tiktok.com" value="https://www.tiktok.com">
+            <span class="hint">Nhập URL đầy đủ (bao gồm https://)</span>
+          </div>
+          <div class="config-group">
+            <label>Số round kiểm tra</label>
+            <input type="number" id="checkTimes" value="5" min="1" max="20">
+            <span class="hint">Số lần kiểm tra mỗi proxy (1-20)</span>
+          </div>
+          <div class="config-group">
+            <label>Delay giữa các round (giây)</label>
+            <input type="number" id="checkDelay" value="5" min="1" max="60">
+            <span class="hint">Thời gian chờ giữa mỗi lần check (1-60s)</span>
+          </div>
+          <div class="config-group">
+            <label>Min Success (để tính là LIVE)</label>
+            <input type="number" id="minSuccess" value="3" min="0" max="19">
+            <span class="hint">Cần > số này lần thành công mới là LIVE</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" id="checkBtn" onclick="startCheck()">
+          🚀 Bắt đầu kiểm tra
+        </button>
+        <button class="btn btn-secondary" onclick="clearAll()">
+          🗑️ Xóa tất cả
+        </button>
+      </div>
+    </div>
+
+    <div class="progress-section" id="progressSection">
+      <div class="info-box" id="infoBox">
+        Đang chuẩn bị kiểm tra...
+        <div class="current-config" id="currentConfig"></div>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-text">
+        <span id="progressText">Đang kiểm tra...</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="stats">
+        <span class="stat stat-live">✓ Live: <span id="liveCount">0</span></span>
+        <span class="stat stat-die">✗ Die: <span id="dieCount">0</span></span>
+      </div>
+    </div>
+
+    <div class="checking-section" id="checkingSection">
+      <div class="checking-title">📡 Đang kiểm tra realtime...</div>
+      <div class="checking-list" id="checkingList"></div>
+    </div>
+
+    <div class="results-section">
+      <div class="result-box">
+        <div class="result-header">
+          <div class="result-title live">
+            ✓ Proxy Live
+            <span class="count-badge" id="liveBadge">0</span>
+          </div>
+          <button class="btn btn-secondary btn-copy" onclick="copyList('live')" id="copyLiveBtn">
+            📋 Copy All
+          </button>
+        </div>
+        <div class="result-list" id="liveList">
+          <div class="empty-state">Chưa có proxy live</div>
+        </div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-header">
+          <div class="result-title die">
+            ✗ Proxy Die
+            <span class="count-badge" id="dieBadge">0</span>
+          </div>
+          <button class="btn btn-secondary btn-copy" onclick="copyList('die')" id="copyDieBtn">
+            📋 Copy All
+          </button>
+        </div>
+        <div class="result-list" id="dieList">
+          <div class="empty-state">Chưa có proxy die</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let liveProxies = [];
+    let dieProxies = [];
+    let checkingStatus = {};
+
+    function toggleHelp() {
+      const content = document.getElementById('helpContent');
+      const icon = document.getElementById('helpIcon');
+      content.classList.toggle('show');
+      icon.classList.toggle('open');
+    }
+
+    function toggleCustomConfig() {
+      const checkbox = document.getElementById('useCustomDomain');
+      const configInputs = document.getElementById('configInputs');
+      configInputs.classList.toggle('show', checkbox.checked);
+    }
+
+    async function startCheck() {
+      const input = document.getElementById('proxyInput').value.trim();
+      if (!input) {
+        alert('Vui lòng nhập danh sách proxy!');
+        return;
+      }
+
+      const proxies = input.split('\n').filter(p => p.trim());
+      if (proxies.length === 0) {
+        alert('Không tìm thấy proxy hợp lệ!');
+        return;
+      }
+
+      // Get config
+      const useCustomDomain = document.getElementById('useCustomDomain').checked;
+      const customDomain = document.getElementById('customDomain').value.trim();
+      const checkTimes = parseInt(document.getElementById('checkTimes').value) || 5;
+      const checkDelay = parseInt(document.getElementById('checkDelay').value) || 5;
+      const minSuccess = parseInt(document.getElementById('minSuccess').value) || 3;
+
+      // Reset
+      liveProxies = [];
+      dieProxies = [];
+      checkingStatus = {};
+      updateResultsUI();
+      document.getElementById('checkingList').innerHTML = '';
+
+      // Show sections
+      document.getElementById('progressSection').style.display = 'block';
+      document.getElementById('checkingSection').style.display = 'block';
+      document.getElementById('checkBtn').disabled = true;
+      document.getElementById('checkBtn').textContent = '⏳ Đang kiểm tra...';
+
+      try {
+        const response = await fetch('/api/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            proxies,
+            useCustomDomain,
+            customDomain,
+            checkTimes,
+            checkInterval: checkDelay * 1000,
+            minSuccess
+          })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value);
+          const lines = text.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                handleUpdate(data);
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (error) {
+        alert('Lỗi kết nối: ' + error.message);
+      }
+
+      document.getElementById('checkBtn').disabled = false;
+      document.getElementById('checkBtn').textContent = '🚀 Bắt đầu kiểm tra';
+      document.getElementById('checkingSection').style.display = 'none';
+    }
+
+    function handleUpdate(data) {
+      if (data.type === 'start') {
+        const mode = data.targetUrl.includes('ipconfig.io') ? 'Check IP' : 'Check Domain';
+        document.getElementById('infoBox').innerHTML = `
+          Kiểm tra ${data.total} proxy
+          <div class="current-config">
+            <span class="config-tag">📍 ${mode}: ${data.targetUrl}</span>
+            <span class="config-tag">🔄 ${data.checkTimes} rounds</span>
+            <span class="config-tag">⏱️ Delay: ${data.interval}s</span>
+            <span class="config-tag">✓ Min Success: > ${data.minSuccess}</span>
+          </div>
+        `;
+      }
+
+      if (data.type === 'check') {
+        checkingStatus[data.proxy] = {
+          round: data.round,
+          totalRounds: data.totalRounds,
+          successCount: data.successCount,
+          results: data.results,
+          ip: data.ip
+        };
+        updateCheckingUI();
+      }
+
+      if (data.type === 'result') {
+        delete checkingStatus[data.proxy];
+        
+        if (data.live) {
+          liveProxies.push({ proxy: data.proxy, ip: data.ip });
+        } else {
+          dieProxies.push({ proxy: data.proxy, ip: data.ip });
+        }
+
+        const percent = Math.round((data.completed / data.total) * 100);
+        document.getElementById('progressBar').style.width = percent + '%';
+        document.getElementById('progressPercent').textContent = percent + '%';
+        document.getElementById('progressText').textContent = 
+          `Hoàn thành ${data.completed}/${data.total} proxy`;
+        document.getElementById('liveCount').textContent = data.liveCount;
+        document.getElementById('dieCount').textContent = data.dieCount;
+
+        updateCheckingUI();
+        updateResultsUI();
+      }
+
+      if (data.type === 'complete') {
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressPercent').textContent = '100%';
+        document.getElementById('progressText').textContent = '✅ Hoàn thành!';
+      }
+    }
+
+    function updateCheckingUI() {
+      const list = document.getElementById('checkingList');
+      const entries = Object.entries(checkingStatus);
+      
+      if (entries.length === 0) {
+        list.innerHTML = '';
+        return;
+      }
+
+      list.innerHTML = entries.map(([proxy, status]) => {
+        const resultsHtml = status.results.split(' ').map(r => 
+          `<span class="${r === '✓' ? 'success' : 'fail'}">${r}</span>`
+        ).join(' ');
+
+        return `
+          <div class="checking-item checking">
+            <div class="check-proxy">
+              ${proxy}
+              ${status.ip ? `<span class="check-ip">→ ${status.ip}</span>` : ''}
+            </div>
+            <span class="check-results">
+              Round ${status.round}/${status.totalRounds}: ${resultsHtml} 
+              (${status.successCount} success)
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function updateResultsUI() {
+      const liveList = document.getElementById('liveList');
+      if (liveProxies.length > 0) {
+        liveList.innerHTML = liveProxies.map(p => `
+          <div class="result-item">
+            <span>${p.proxy}</span>
+            ${p.ip ? `<span class="result-ip">${p.ip}</span>` : ''}
+          </div>
+        `).join('');
+      } else {
+        liveList.innerHTML = '<div class="empty-state">Chưa có proxy live</div>';
+      }
+      document.getElementById('liveBadge').textContent = liveProxies.length;
+
+      const dieList = document.getElementById('dieList');
+      if (dieProxies.length > 0) {
+        dieList.innerHTML = dieProxies.map(p => `
+          <div class="result-item">
+            <span>${p.proxy}</span>
+            ${p.ip ? `<span class="result-ip">${p.ip}</span>` : ''}
+          </div>
+        `).join('');
+      } else {
+        dieList.innerHTML = '<div class="empty-state">Chưa có proxy die</div>';
+      }
+      document.getElementById('dieBadge').textContent = dieProxies.length;
+    }
+
+    function copyList(type) {
+      const list = type === 'live' ? liveProxies : dieProxies;
+      if (list.length === 0) {
+        alert('Không có proxy để copy!');
+        return;
+      }
+
+      const text = list.map(p => p.proxy).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(type === 'live' ? 'copyLiveBtn' : 'copyDieBtn');
+        btn.textContent = '✓ Đã copy!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '📋 Copy All';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function clearAll() {
+      document.getElementById('proxyInput').value = '';
+      liveProxies = [];
+      dieProxies = [];
+      checkingStatus = {};
+      updateResultsUI();
+      document.getElementById('progressSection').style.display = 'none';
+      document.getElementById('checkingSection').style.display = 'none';
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('checkingList').innerHTML = '';
+    }
+  </script>
+</body>
+</html>
