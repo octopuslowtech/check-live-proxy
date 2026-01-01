@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proxy Checker - High Performance</title>
+  <title>Proxy Tools - Check & Dedupe</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -23,6 +23,42 @@
       -webkit-text-fill-color: transparent;
     }
     .subtitle { text-align: center; color: #888; margin-bottom: 30px; }
+
+    /* Tab Navigation */
+    .tab-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 10px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: transparent;
+      color: #888;
+    }
+    .tab-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .tab-btn.active {
+      background: linear-gradient(90deg, #00f5d4, #00bbf9);
+      color: #000;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
     
     /* Help Section */
     .help-section {
@@ -251,6 +287,8 @@
     }
     .stat-live { background: rgba(0,255,136,0.2); color: #00ff88; }
     .stat-die { background: rgba(255,68,68,0.2); color: #ff4444; }
+    .stat-dup { background: rgba(255,170,0,0.2); color: #ffaa00; }
+    .stat-unique { background: rgba(0,187,249,0.2); color: #00bbf9; }
 
     .checking-section {
       background: rgba(255,255,255,0.05);
@@ -318,6 +356,7 @@
     }
     .result-title.live { color: #00ff88; }
     .result-title.die { color: #ff4444; }
+    .result-title.unique { color: #00bbf9; }
     .count-badge {
       background: rgba(255,255,255,0.1);
       padding: 4px 12px;
@@ -369,166 +408,303 @@
       border-radius: 4px;
       font-size: 12px;
     }
+
+    /* Dedupe specific styles */
+    .dedupe-stats {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .dedupe-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+    .dedupe-stat-card {
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .dedupe-stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .dedupe-stat-card .label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+    }
+    .dedupe-stat-card.total .value { color: #fff; }
+    .dedupe-stat-card.unique .value { color: #00bbf9; }
+    .dedupe-stat-card.duplicate .value { color: #ffaa00; }
+    .dedupe-stat-card.percent .value { color: #00f5d4; }
+
+    .dedupe-result-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🔍 Proxy Checker</h1>
-    <p class="subtitle">Kiểm tra kết nối proxy với hiệu năng cao</p>
+    <h1>🔧 Proxy Tools</h1>
+    <p class="subtitle">Công cụ kiểm tra và xử lý proxy</p>
 
-    <!-- Help Section -->
-    <div class="help-section">
-      <div class="help-toggle" onclick="toggleHelp()">
-        <h3>📖 Hướng dẫn sử dụng</h3>
-        <span class="help-toggle-icon" id="helpIcon">▼</span>
-      </div>
-      <div class="help-content" id="helpContent">
-        <div class="help-grid">
-          <div class="help-card">
-            <h4>📝 Định dạng Proxy</h4>
-            <ul>
-              <li>Không có auth: <code>ip:port</code></li>
-              <li>Có auth: <code>ip:port:username:password</code></li>
-              <li>Mỗi proxy trên một dòng</li>
-              <li>Hỗ trợ HTTP/HTTPS proxy</li>
-            </ul>
-          </div>
-          <div class="help-card">
-            <h4>⚙️ Chế độ kiểm tra</h4>
-            <ul>
-              <li><strong>Mặc định:</strong> Kiểm tra IP qua ipconfig.io/json</li>
-              <li><strong>Custom Domain:</strong> Tick checkbox để nhập domain riêng (VD: tiktok.com)</li>
-              <li>Khi tick, có thể cấu hình số round, delay, min success</li>
-            </ul>
-          </div>
-          <div class="help-card">
-            <h4>🎯 Cấu hình nâng cao</h4>
-            <ul>
-              <li><strong>Số round:</strong> Số lần kiểm tra mỗi proxy (1-20)</li>
-              <li><strong>Delay:</strong> Thời gian chờ giữa các round (giây)</li>
-              <li><strong>Min Success:</strong> Số lần thành công tối thiểu để coi là LIVE</li>
-              <li>Ví dụ: 5 round, min 3 → cần 4+ lần thành công = LIVE</li>
-            </ul>
-          </div>
-          <div class="help-card">
-            <h4>📊 Kết quả</h4>
-            <ul>
-              <li><strong>✓ Live:</strong> Proxy kết nối thành công</li>
-              <li><strong>✗ Die:</strong> Proxy không thể kết nối</li>
-              <li>Hiển thị IP thực của proxy (nếu check IP)</li>
-              <li>Click "Copy All" để sao chép danh sách</li>
-            </ul>
-          </div>
-        </div>
-        <div class="help-note">
-          <strong>💡 Lưu ý:</strong> 
-          Tool kiểm tra đồng thời 50 proxy để tối ưu hiệu năng. 
-          Timeout mỗi request là 10 giây. 
-          Nếu kiểm tra domain cụ thể (như TikTok), một số quốc gia có thể bị chặn nên proxy sẽ hiển thị là Die.
-        </div>
-      </div>
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('check')">🔍 Check Live Proxy</button>
+      <button class="tab-btn" onclick="switchTab('dedupe')">🔄 Lọc Trùng</button>
     </div>
 
-    <div class="input-section">
-      <label>Nhập danh sách proxy (mỗi proxy một dòng)</label>
-      <textarea id="proxyInput" placeholder="Ví dụ:
+    <!-- Tab 1: Check Live Proxy -->
+    <div class="tab-content active" id="tab-check">
+      <!-- Help Section -->
+      <div class="help-section">
+        <div class="help-toggle" onclick="toggleHelp()">
+          <h3>📖 Hướng dẫn sử dụng</h3>
+          <span class="help-toggle-icon" id="helpIcon">▼</span>
+        </div>
+        <div class="help-content" id="helpContent">
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>📝 Định dạng Proxy</h4>
+              <ul>
+                <li>Không có auth: <code>ip:port</code></li>
+                <li>Có auth: <code>ip:port:username:password</code></li>
+                <li>Mỗi proxy trên một dòng</li>
+                <li>Hỗ trợ HTTP/HTTPS proxy</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>⚙️ Chế độ kiểm tra</h4>
+              <ul>
+                <li><strong>Mặc định:</strong> Kiểm tra IP qua ipconfig.io/json</li>
+                <li><strong>Custom Domain:</strong> Tick checkbox để nhập domain riêng (VD: tiktok.com)</li>
+                <li>Khi tick, có thể cấu hình số round, delay, min success</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🎯 Cấu hình nâng cao</h4>
+              <ul>
+                <li><strong>Số round:</strong> Số lần kiểm tra mỗi proxy (1-20)</li>
+                <li><strong>Delay:</strong> Thời gian chờ giữa các round (giây)</li>
+                <li><strong>Min Success:</strong> Số lần thành công tối thiểu để coi là LIVE</li>
+                <li>Ví dụ: 5 round, min 3 → cần 4+ lần thành công = LIVE</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>📊 Kết quả</h4>
+              <ul>
+                <li><strong>✓ Live:</strong> Proxy kết nối thành công</li>
+                <li><strong>✗ Die:</strong> Proxy không thể kết nối</li>
+                <li>Hiển thị IP thực của proxy (nếu check IP)</li>
+                <li>Click "Copy All" để sao chép danh sách</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note">
+            <strong>💡 Lưu ý:</strong> 
+            Tool kiểm tra đồng thời 50 proxy để tối ưu hiệu năng. 
+            Timeout mỗi request là 10 giây. 
+            Nếu kiểm tra domain cụ thể (như TikTok), một số quốc gia có thể bị chặn nên proxy sẽ hiển thị là Die.
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <label>Nhập danh sách proxy (mỗi proxy một dòng)</label>
+        <textarea id="proxyInput" placeholder="Ví dụ:
 103.152.112.162:8080
 192.168.1.1:3128:myuser:mypass123
 45.77.123.45:8888"></textarea>
-      
-      <div class="config-section">
-        <div class="config-row">
-          <label class="checkbox-wrapper">
-            <input type="checkbox" id="useCustomDomain" onchange="toggleCustomConfig()">
-            <span class="checkbox-label">🎯 Kiểm tra domain cụ thể (thay vì check IP)</span>
-          </label>
-        </div>
         
-        <div class="config-inputs" id="configInputs">
-          <div class="config-group domain-input">
-            <label>Domain kiểm tra</label>
-            <input type="text" id="customDomain" placeholder="https://www.tiktok.com" value="https://www.tiktok.com">
-            <span class="hint">Nhập URL đầy đủ (bao gồm https://)</span>
+        <div class="config-section">
+          <div class="config-row">
+            <label class="checkbox-wrapper">
+              <input type="checkbox" id="useCustomDomain" onchange="toggleCustomConfig()">
+              <span class="checkbox-label">🎯 Kiểm tra domain cụ thể (thay vì check IP)</span>
+            </label>
           </div>
-          <div class="config-group">
-            <label>Số round kiểm tra</label>
-            <input type="number" id="checkTimes" value="5" min="1" max="20">
-            <span class="hint">Số lần kiểm tra mỗi proxy (1-20)</span>
-          </div>
-          <div class="config-group">
-            <label>Delay giữa các round (giây)</label>
-            <input type="number" id="checkDelay" value="5" min="1" max="60">
-            <span class="hint">Thời gian chờ giữa mỗi lần check (1-60s)</span>
-          </div>
-          <div class="config-group">
-            <label>Min Success (để tính là LIVE)</label>
-            <input type="number" id="minSuccess" value="3" min="0" max="19">
-            <span class="hint">Cần > số này lần thành công mới là LIVE</span>
+          
+          <div class="config-inputs" id="configInputs">
+            <div class="config-group domain-input">
+              <label>Domain kiểm tra</label>
+              <input type="text" id="customDomain" placeholder="https://www.tiktok.com" value="https://www.tiktok.com">
+              <span class="hint">Nhập URL đầy đủ (bao gồm https://)</span>
+            </div>
+            <div class="config-group">
+              <label>Số round kiểm tra</label>
+              <input type="number" id="checkTimes" value="5" min="1" max="20">
+              <span class="hint">Số lần kiểm tra mỗi proxy (1-20)</span>
+            </div>
+            <div class="config-group">
+              <label>Delay giữa các round (giây)</label>
+              <input type="number" id="checkDelay" value="5" min="1" max="60">
+              <span class="hint">Thời gian chờ giữa mỗi lần check (1-60s)</span>
+            </div>
+            <div class="config-group">
+              <label>Min Success (để tính là LIVE)</label>
+              <input type="number" id="minSuccess" value="3" min="0" max="19">
+              <span class="hint">Cần > số này lần thành công mới là LIVE</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="btn-group">
-        <button class="btn btn-primary" id="checkBtn" onclick="startCheck()">
-          🚀 Bắt đầu kiểm tra
-        </button>
-        <button class="btn btn-secondary" onclick="clearAll()">
-          🗑️ Xóa tất cả
-        </button>
-      </div>
-    </div>
-
-    <div class="progress-section" id="progressSection">
-      <div class="info-box" id="infoBox">
-        Đang chuẩn bị kiểm tra...
-        <div class="current-config" id="currentConfig"></div>
-      </div>
-      <div class="progress-bar-container">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      <div class="progress-text">
-        <span id="progressText">Đang kiểm tra...</span>
-        <span id="progressPercent">0%</span>
-      </div>
-      <div class="stats">
-        <span class="stat stat-live">✓ Live: <span id="liveCount">0</span></span>
-        <span class="stat stat-die">✗ Die: <span id="dieCount">0</span></span>
-      </div>
-    </div>
-
-    <div class="checking-section" id="checkingSection">
-      <div class="checking-title">📡 Đang kiểm tra realtime...</div>
-      <div class="checking-list" id="checkingList"></div>
-    </div>
-
-    <div class="results-section">
-      <div class="result-box">
-        <div class="result-header">
-          <div class="result-title live">
-            ✓ Proxy Live
-            <span class="count-badge" id="liveBadge">0</span>
-          </div>
-          <button class="btn btn-secondary btn-copy" onclick="copyList('live')" id="copyLiveBtn">
-            📋 Copy All
+        <div class="btn-group">
+          <button class="btn btn-primary" id="checkBtn" onclick="startCheck()">
+            🚀 Bắt đầu kiểm tra
+          </button>
+          <button class="btn btn-secondary" onclick="clearAll()">
+            🗑️ Xóa tất cả
           </button>
         </div>
-        <div class="result-list" id="liveList">
-          <div class="empty-state">Chưa có proxy live</div>
+      </div>
+
+      <div class="progress-section" id="progressSection">
+        <div class="info-box" id="infoBox">
+          Đang chuẩn bị kiểm tra...
+          <div class="current-config" id="currentConfig"></div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-text">
+          <span id="progressText">Đang kiểm tra...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="stats">
+          <span class="stat stat-live">✓ Live: <span id="liveCount">0</span></span>
+          <span class="stat stat-die">✗ Die: <span id="dieCount">0</span></span>
         </div>
       </div>
 
-      <div class="result-box">
-        <div class="result-header">
-          <div class="result-title die">
-            ✗ Proxy Die
-            <span class="count-badge" id="dieBadge">0</span>
+      <div class="checking-section" id="checkingSection">
+        <div class="checking-title">📡 Đang kiểm tra realtime...</div>
+        <div class="checking-list" id="checkingList"></div>
+      </div>
+
+      <div class="results-section">
+        <div class="result-box">
+          <div class="result-header">
+            <div class="result-title live">
+              ✓ Proxy Live
+              <span class="count-badge" id="liveBadge">0</span>
+            </div>
+            <button class="btn btn-secondary btn-copy" onclick="copyList('live')" id="copyLiveBtn">
+              📋 Copy All
+            </button>
           </div>
-          <button class="btn btn-secondary btn-copy" onclick="copyList('die')" id="copyDieBtn">
-            📋 Copy All
+          <div class="result-list" id="liveList">
+            <div class="empty-state">Chưa có proxy live</div>
+          </div>
+        </div>
+
+        <div class="result-box">
+          <div class="result-header">
+            <div class="result-title die">
+              ✗ Proxy Die
+              <span class="count-badge" id="dieBadge">0</span>
+            </div>
+            <button class="btn btn-secondary btn-copy" onclick="copyList('die')" id="copyDieBtn">
+              📋 Copy All
+            </button>
+          </div>
+          <div class="result-list" id="dieList">
+            <div class="empty-state">Chưa có proxy die</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Lọc Trùng -->
+    <div class="tab-content" id="tab-dedupe">
+      <div class="help-section">
+        <div class="help-toggle" onclick="toggleDedupeHelp()">
+          <h3>📖 Hướng dẫn sử dụng</h3>
+          <span class="help-toggle-icon" id="dedupeHelpIcon">▼</span>
+        </div>
+        <div class="help-content" id="dedupeHelpContent">
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>🔄 Chức năng</h4>
+              <ul>
+                <li>Lọc bỏ các proxy bị trùng lặp</li>
+                <li>Chỉ giữ lại các proxy duy nhất</li>
+                <li>Thống kê số lượng proxy trùng</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>📝 Định dạng</h4>
+              <ul>
+                <li>Hỗ trợ: <code>ip:port</code></li>
+                <li>Hỗ trợ: <code>ip:port:user:pass</code></li>
+                <li>Mỗi proxy một dòng</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <label>Nhập danh sách proxy cần lọc trùng (mỗi proxy một dòng)</label>
+        <textarea id="dedupeInput" placeholder="Ví dụ:
+103.152.112.162:8080
+192.168.1.1:3128
+103.152.112.162:8080
+45.77.123.45:8888
+192.168.1.1:3128"></textarea>
+        
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="startDedupe()">
+            🔄 Lọc Trùng
+          </button>
+          <button class="btn btn-secondary" onclick="clearDedupe()">
+            🗑️ Xóa tất cả
           </button>
         </div>
-        <div class="result-list" id="dieList">
-          <div class="empty-state">Chưa có proxy die</div>
+      </div>
+
+      <div class="dedupe-stats" id="dedupeStats">
+        <div class="dedupe-stats-grid">
+          <div class="dedupe-stat-card total">
+            <div class="value" id="totalInput">0</div>
+            <div class="label">Tổng nhập vào</div>
+          </div>
+          <div class="dedupe-stat-card unique">
+            <div class="value" id="uniqueCount">0</div>
+            <div class="label">Proxy duy nhất</div>
+          </div>
+          <div class="dedupe-stat-card duplicate">
+            <div class="value" id="duplicateCount">0</div>
+            <div class="label">Proxy trùng</div>
+          </div>
+          <div class="dedupe-stat-card percent">
+            <div class="value" id="duplicatePercent">0%</div>
+            <div class="label">Tỷ lệ trùng</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dedupe-result-section" id="dedupeResultSection">
+        <div class="result-box" style="max-width: 100%;">
+          <div class="result-header">
+            <div class="result-title unique">
+              ✓ Proxy Duy Nhất
+              <span class="count-badge" id="uniqueBadge">0</span>
+            </div>
+            <button class="btn btn-secondary btn-copy" onclick="copyUniqueList()" id="copyUniqueBtn">
+              📋 Copy All
+            </button>
+          </div>
+          <div class="result-list" id="uniqueList" style="height: 400px;">
+            <div class="empty-state">Chưa có kết quả</div>
+          </div>
         </div>
       </div>
     </div>
@@ -538,10 +714,27 @@
     let liveProxies = [];
     let dieProxies = [];
     let checkingStatus = {};
+    let uniqueProxies = [];
+
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
 
     function toggleHelp() {
       const content = document.getElementById('helpContent');
       const icon = document.getElementById('helpIcon');
+      content.classList.toggle('show');
+      icon.classList.toggle('open');
+    }
+
+    function toggleDedupeHelp() {
+      const content = document.getElementById('dedupeHelpContent');
+      const icon = document.getElementById('dedupeHelpIcon');
       content.classList.toggle('show');
       icon.classList.toggle('open');
     }
@@ -768,6 +961,96 @@
       document.getElementById('checkingSection').style.display = 'none';
       document.getElementById('progressBar').style.width = '0%';
       document.getElementById('checkingList').innerHTML = '';
+    }
+
+    // Dedupe functions
+    function getIpPort(proxy) {
+      const parts = proxy.split(':');
+      if (parts.length >= 2) {
+        return `${parts[0]}:${parts[1]}`;
+      }
+      return proxy;
+    }
+
+    function startDedupe() {
+      const input = document.getElementById('dedupeInput').value.trim();
+      if (!input) {
+        alert('Vui lòng nhập danh sách proxy!');
+        return;
+      }
+
+      const proxies = input.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+      if (proxies.length === 0) {
+        alert('Không tìm thấy proxy hợp lệ!');
+        return;
+      }
+
+      // Deduplicate by ip:port only (ignore user/pass)
+      const seen = new Set();
+      uniqueProxies = [];
+      let duplicateCount = 0;
+
+      for (const proxy of proxies) {
+        const ipPort = getIpPort(proxy);
+        if (seen.has(ipPort)) {
+          duplicateCount++;
+        } else {
+          seen.add(ipPort);
+          uniqueProxies.push(proxy);
+        }
+      }
+
+      const total = proxies.length;
+      const uniqueCount = uniqueProxies.length;
+      const percent = total > 0 ? Math.round((duplicateCount / total) * 100) : 0;
+
+      // Update stats
+      document.getElementById('totalInput').textContent = total;
+      document.getElementById('uniqueCount').textContent = uniqueCount;
+      document.getElementById('duplicateCount').textContent = duplicateCount;
+      document.getElementById('duplicatePercent').textContent = percent + '%';
+
+      // Update result list
+      const uniqueList = document.getElementById('uniqueList');
+      if (uniqueProxies.length > 0) {
+        uniqueList.innerHTML = uniqueProxies.map(p => `
+          <div class="result-item">
+            <span>${p}</span>
+          </div>
+        `).join('');
+      } else {
+        uniqueList.innerHTML = '<div class="empty-state">Không có proxy</div>';
+      }
+      document.getElementById('uniqueBadge').textContent = uniqueCount;
+
+      // Show sections
+      document.getElementById('dedupeStats').style.display = 'block';
+      document.getElementById('dedupeResultSection').style.display = 'block';
+    }
+
+    function copyUniqueList() {
+      if (uniqueProxies.length === 0) {
+        alert('Không có proxy để copy!');
+        return;
+      }
+
+      const text = uniqueProxies.join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyUniqueBtn');
+        btn.textContent = '✓ Đã copy!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '📋 Copy All';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function clearDedupe() {
+      document.getElementById('dedupeInput').value = '';
+      uniqueProxies = [];
+      document.getElementById('dedupeStats').style.display = 'none';
+      document.getElementById('dedupeResultSection').style.display = 'none';
     }
   </script>
 </body>
